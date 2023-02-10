@@ -1,0 +1,46 @@
+version: "3.8"
+services:
+    mongodb:
+        image: mongo
+        volumes:
+            - mongodbdata:/data/db # Database persistance.
+        ports:
+            - 27012:27017 # Allows us to connect to MongoDB Compass.
+        container_name: mongodb
+
+    backend:
+        build:
+            context: ./backend
+            dockerfile: Dockerfile.dev
+        image: atiquemorshed/mern-auth-v1-backend
+        volumes:
+            - ./backend:/app # bind mounbt for syncing code
+            - /app/node_modules # anonymous volumne to keep container node_modules out of sync. (This way, we dont need node_modules in source code)
+        ports:
+            - 4000:4000
+        env_file:
+            - ./backend/.env
+        depends_on:
+            - mongodb
+        container_name: mern-auth-v1-backend-app
+
+    frontend:
+        build:
+            context: ./frontend
+            dockerfile: Dockerfile.dev
+        image: atiquemorshed/mern-auth-v1-frontend
+        volumes:
+            - ./frontend:/app
+            - /app/node_modules
+        ports:
+            - 3000:3000
+        env_file:
+            - ./frontend/.env.local
+        depends_on:
+            - backend
+        stdin_open: true
+        tty: true
+        container_name: mern-auth-v1-frontend-app
+
+volumes:
+    mongodbdata:
