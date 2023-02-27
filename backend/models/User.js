@@ -1,4 +1,6 @@
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
+import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 
 const UserSchema = mongoose.Schema({
@@ -26,27 +28,15 @@ const UserSchema = mongoose.Schema({
 		maxLength: [20, "Cannot be larger than 20 characters."],
 		select: false,
 	},
+	isEmailVerified: Boolean,
 	resetPasswordToken: {
-		isActive: {
-			type: Boolean,
-		},
-		resetToken: {
-			type: String,
-		},
-		expiryDate: {
-			type: Date,
-		},
+		resetToken: String,
+		expiryDate: Date,
 	},
-	isEmailVerified: {
-		type: Boolean,
-	},
+
 	emailVerificationToken: {
-		verificationToken: {
-			type: String,
-		},
-		expiryDate: {
-			type: Date,
-		},
+		verificationToken: String,
+		expiryDate: Date,
 	},
 });
 // Here, we are using the function keyword because that will bind the this keyword to the new user object that it receives.
@@ -58,6 +48,28 @@ UserSchema.pre("save", async function (next) {
 	this.password = await bcrypt.hash(this.password, salt);
 	next();
 });
+
+UserSchema.methods.matchPasswords = async function (password) {
+	return await bcrypt.compare(password, this.password);
+};
+
+UserSchema.methods.getSignedJWTToken = function () {
+	return jwt.sign({ id: this._id }, process.env.JWT_SECRET, {
+		expiresIn: process.env.JWT_EXPIRE,
+	});
+};
+
+UserSchema.methods.getResetPasswordToken = function () {
+	const resetToken = crypto.randomBytes(20).toString("hex");
+	this.resetPasswordToken.resetToken = crypto
+		.createHash("sha256")
+		.update(resetToken)
+		.digest("hex");
+
+	this.resetPasswordToken.expiryDate = new Date(Date.now() + 10 * 60 * 1000);
+	return resetToken;
+};
+
 const User = mongoose.model("User", UserSchema);
 
 export default User;
