@@ -4,6 +4,7 @@ dotenv.config();
 import express from "express";
 import connectDB from "./config/connectDB.js";
 import errorHandler from "./middleware/errorHandler.js";
+import loginLimiter from "./middleware/loginLimiter.js";
 import authRoute from "./routes/auth.js";
 import protectedRoute from "./routes/protected.js";
 
@@ -18,7 +19,7 @@ app.get("/", (req, res) => {
 	res.send("K.O.");
 });
 
-app.use("/api/auth", authRoute);
+app.use("/api/auth", loginLimiter, authRoute);
 
 app.use("/api/protected", protectedRoute);
 
